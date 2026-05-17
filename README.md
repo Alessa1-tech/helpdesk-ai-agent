@@ -79,4 +79,4 @@ Se abrirá automáticamente en tu navegador en http://localhost:8501
 ⚠️ Si no se abre automáticamente: copia y pega http://localhost:8501 directamente en tu navegador.
 
 👤 Autor
-Alejandro Espier — LinkedIn
+Alejandro Espier — [LinkedIn](https://www.linkedin.com/in/alejandro-espier-52863b363/)
