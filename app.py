@@ -9,8 +9,15 @@ import string
 
 load_dotenv()
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL")
+# Funciona tanto en local como en Streamlit Cloud
+try:
+    OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
+    N8N_WEBHOOK_URL = st.secrets["N8N_WEBHOOK_URL"]
+except:
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL")
+
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 def validar_email(email):
     patron = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
@@ -71,6 +78,8 @@ if "numero_ticket" not in st.session_state:
     st.session_state.numero_ticket = None
 if "datos_usuario" not in st.session_state:
     st.session_state.datos_usuario = {}
+if "esperando_respuesta" not in st.session_state:
+    st.session_state.esperando_respuesta = False
 
 if not st.session_state.datos_usuario:
     with st.form("form_inicio"):
@@ -87,6 +96,7 @@ if not st.session_state.datos_usuario:
         else:
             st.session_state.datos_usuario = {"nombre": nombre, "email": email}
             st.session_state.mensajes.append({"role": "user", "content": problema})
+            st.session_state.esperando_respuesta = True
             st.rerun()
 
 else:
@@ -111,9 +121,11 @@ else:
             st.session_state.ticket_cerrado = False
             st.session_state.numero_ticket = None
             st.session_state.datos_usuario = {}
+            st.session_state.esperando_respuesta = False
             st.rerun()
 
-    elif st.session_state.mensajes and st.session_state.mensajes[-1]["role"] == "user":
+    elif st.session_state.esperando_respuesta:
+        st.session_state.esperando_respuesta = False
         with st.spinner("Analizando..."):
             response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
@@ -174,10 +186,11 @@ else:
                     }
                     requests.post(N8N_WEBHOOK_URL, json=payload)
 
-                st.rerun()
+        st.rerun()
 
-    elif not st.session_state.ticket_cerrado:
+    else:
         respuesta_usuario = st.chat_input("Escribe tu respuesta...")
         if respuesta_usuario:
             st.session_state.mensajes.append({"role": "user", "content": respuesta_usuario})
+            st.session_state.esperando_respuesta = True
             st.rerun()
